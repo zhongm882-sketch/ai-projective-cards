@@ -1,0 +1,29 @@
+{
+  "name": "ai-projective-cards",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "framer-motion": "^12.42.2",
+    "next": "15.3.3",
+    "openai": "^6.46.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "replicate": "^1.4.0",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

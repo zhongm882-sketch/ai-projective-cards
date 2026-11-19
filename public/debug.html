@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>身份诊断</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 15px; overflow-x: auto; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>身份问题诊断工具</h1>
+
+    <div>
+        <button onclick="step1()">步骤1: 获取游客身份</button>
+        <button onclick="step2()">步骤2: 验证身份</button>
+        <button onclick="step3()">步骤3: 测试AI调用</button>
+        <button onclick="clearAll()">清空所有数据</button>
+    </div>
+
+    <pre id="log"></pre>
+
+    <script>
+        const log = document.getElementById('log');
+
+        function write(msg, isError = false) {
+            const span = document.createElement('span');
+            span.className = isError ? 'error' : (msg.includes('✅') ? 'success' : '');
+            span.textContent = msg + '\n';
+            log.appendChild(span);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clear() {
+            log.textContent = '';
+        }
+
+        async function step1() {
+            clear();
+            write('=== 步骤1: 获取游客身份 ===\n');
+
+            // 生成设备key
+            let deviceKey = localStorage.getItem('projective_device_key');
+            if (!deviceKey) {
+                deviceKey = crypto.randomUUID();
+                localStorage.setItem('projective_device_key', deviceKey);
+                write('✅ 生成新设备key: ' + deviceKey);
+            } else {
+                write('✅ 使用已有设备key: ' + deviceKey);
+            }
+
+            write('\n正在调用 /api/auth/guest...');
+
+            try {
+                const res = await fetch('/api/auth/guest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ deviceKey })
+                });
+
+                write('响应状态: ' + res.status);
+
+                const data = await res.json();
+                write('响应数据: ' + JSON.stringify(data, null, 2));
+
+                if (res.ok && data.identity) {
+                    write('\n✅ 游客身份获取成功！');
+                    write('身份类型: ' + data.identity.type);
+                } else {
+                    write('\n❌ 获取失败: ' + (data.error || '未知错误'), true);
+                }
+            } catch (err) {
+                write('\n❌ 请求异常: ' + err.message, true);
+            }
+        }
+
+        async function step2() {
+            clear();
+            write('=== 步骤2: 验证当前身份 ===\n');
+
+            try {
+                const res = await fetch('/api/auth/me', {
+                    credentials: 'same-origin'
+                });
+
+                write('响应状态: ' + res.status);
+
+                const data = await res.json();
+                write('响应数据: ' + JSON.stringify(data, null, 2));
+
+                if (data.identity) {
+                    write('\n✅ 已有身份: ' + data.identity.type);
+                } else {
+                    write('\n⚠️  未检测到身份，请先执行步骤1', true);
+                }
+            } catch (err) {
+                write('\n❌ 请求异常: ' + err.message, true);
+            }
+        }
+
+        async function step3() {
+            clear();
+            write('=== 步骤3: 测试AI调用 ===\n');
+
+            try {
+                const res = await fetch('/api/session/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        cardImageUrl: '/cards/test.jpg'
+                    })
+                });
+
+                write('响应状态: ' + res.status);
+
+                const text = await res.text();
+                write('响应内容: ' + text);
+
+                if (res.ok) {
+                    write('\n✅ AI调用成功！');
+                } else {
+                    const data = JSON.parse(text);
+                    write('\n❌ AI调用失败: ' + (data.error || '未知错误'), true);
+                    if (data.code) {
+                        write('错误代码: ' + data.code, true);
+                    }
+                }
+            } catch (err) {
+                write('\n❌ 请求异常: ' + err.message, true);
+            }
+        }
+
+        function clearAll() {
+            clear();
+            write('=== 清空所有数据 ===\n');
+
+            localStorage.clear();
+            write('✅ 已清空 localStorage');
+
+            // 清空 cookies (通过设置过期时间)
+            document.cookie.split(";").forEach(c => {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            write('✅ 已清空 cookies');
+
+            write('\n现在可以重新开始测试');
+        }
+    </script>
+</body>
+</html>

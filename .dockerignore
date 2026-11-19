@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+ai-projective-cards
+tsconfig.tsbuildinfo
+cookies.txt
+*.bat
+*.ps1
+.claude
+.vercel
+
+# 密钥文件绝不进镜像：容器从 .env.secrets 注入（见 docker-compose.yml）
+.env
+.env.*
+server/.env
+server/.env.*

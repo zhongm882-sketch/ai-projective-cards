@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: ohcards-postgres
+    environment:
+      POSTGRES_PASSWORD: "change-me"
+      POSTGRES_DB: "projective"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d projective"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: ohcards-server
+    # 密钥从宿主机文件注入，不进镜像（.dockerignore 已排除 .env*）
+    env_file:
+      - .env.secrets
+    environment:
+      # 容器里数据库主机名是 postgres（服务名），不再是 localhost
+      DATABASE_URL: postgresql://postgres:change-me@postgres:5432/projective
+      CORS_ORIGINS: http://localhost:3001,http://192.168.1.200:3001
+      NODE_ENV: development
+      PORT: 4000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: ohcards-web
+    # 密钥从宿主机文件注入，不进镜像（.dockerignore 已排除 .env*）
+    env_file:
+      - .env.secrets
+    environment:
+      # 容器里后端地址是 http://server:4000，不再是 localhost
+      BACKEND_URL: http://server:4000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  pgdata:
